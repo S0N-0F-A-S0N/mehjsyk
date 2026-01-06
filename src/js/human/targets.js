@@ -314,11 +314,12 @@ export class Targets extends TargetMetaData {
 
         // do the dot product over a flat targetData
         for (let j = 0; j < n; j += 1) {
-            if (this.human.morphTargetInfluences[j] === 0) continue // BOLT: Early exit for zero influence
-
-            for (let i = 0; i < m; i += 1) {
-                if (this.targetData[i + j * m] !== 0) {
-                    dVert[i] += this.targetData[i + j * m] * this.human.morphTargetInfluences[j]
+            // BOLT: Early exit for zero influence
+            if (this.human.morphTargetInfluences[j] !== 0) {
+                for (let i = 0; i < m; i += 1) {
+                    if (this.targetData[i + j * m] !== 0) {
+                        dVert[i] += this.targetData[i + j * m] * this.human.morphTargetInfluences[j]
+                    }
                 }
             }
         }

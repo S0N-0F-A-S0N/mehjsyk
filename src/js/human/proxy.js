@@ -146,8 +146,6 @@ export class Proxy extends THREE.Object3D {
         const meshVertices = this.mesh.geometry.vertices
 
         // BOLT: Optimization - Access vertices directly to avoid mapping creation
-        const refV0 = new THREE.Vector3()
-
         for (let i = 0; i < meshVertices.length; i++) {
             // xyz offsets calculated as dot(matrix, offsets)
             const vertice = meshVertices[i]
