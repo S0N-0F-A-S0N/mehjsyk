@@ -287,7 +287,15 @@ export class Targets extends TargetMetaData {
         // let [m,n] =  this.targetData.size
         const m = this.human.geometry.vertices.length * 3
         const n = this.human.morphTargetInfluences.length
-        const dVert = new Float32Array(m)
+
+        // Reuse existing buffer or create new one if size changed
+        // BOLT: Optimization to reduce garbage collection of Float32Arrays
+        if (!this._dVert || this._dVert.length !== m) {
+            this._dVert = new Float32Array(m)
+        }
+        const dVert = this._dVert
+        // Reset buffer to zero for accumulation
+        dVert.fill(0)
 
         // What is targetData? It's all the makehuman targets, (ordered alphebetically by target path)
         // put in an nb_targets X nb_vertices*3 array as Int16 then flattened written as bytes to a file.
@@ -306,19 +314,26 @@ export class Targets extends TargetMetaData {
 
         // do the dot product over a flat targetData
         for (let j = 0; j < n; j += 1) {
+            if (this.human.morphTargetInfluences[j] === 0) continue // BOLT: Early exit for zero influence
+
             for (let i = 0; i < m; i += 1) {
-                if (this.human.morphTargetInfluences[j] !== 0 && this.targetData[i + j * m] !== 0) {
+                if (this.targetData[i + j * m] !== 0) {
                     dVert[i] += this.targetData[i + j * m] * this.human.morphTargetInfluences[j]
                 }
             }
         }
 
         // update the vertices
-        const vertices = this.referenceVertices.map(v => v.clone())
+        // BOLT: Optimization - Update vertices in-place without object creation
+        const vertices = this.human.geometry.vertices
+        const refVertices = this.referenceVertices
+
         for (let i = 0; i < vertices.length; i += 1) {
-            vertices[i].add({ x: dVert[i * 3] * 1e-3, y: dVert[i * 3 + 1] * 1e-3, z: dVert[i * 3 + 2] * 1e-3 })
+            vertices[i].x = refVertices[i].x + dVert[i * 3] * 1e-3
+            vertices[i].y = refVertices[i].y + dVert[i * 3 + 1] * 1e-3
+            vertices[i].z = refVertices[i].z + dVert[i * 3 + 2] * 1e-3
         }
-        this.human.geometry.vertices = vertices
+        // this.human.geometry.vertices = vertices // BOLT: No longer needed as we updated in-place
 
         // this.human.mesh.geometry.verticesNeedUpdate = true;
         this.human.mesh.geometry.elementsNeedUpdate = true

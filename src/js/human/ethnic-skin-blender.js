@@ -28,13 +28,43 @@ export class EthnicSkinBlender {
             this.human.factors.getAsian()
         ]
 
+        // BOLT: Optimization - Reuse temporary color to avoid object creation
+        if (!this._tempColor) this._tempColor = new THREE.Color()
+        const color = this._tempColor.setRGB(0, 0, 0)
+
+        // Reuse a helper color for additions to avoid cloning
+        if (!this._helperColor) this._helperColor = new THREE.Color()
+        const helper = this._helperColor
+
         // Set diffuse color
-        const color = new THREE.Color(0, 0, 0)
-            .add(caucasianColor.clone().multiplyScalar(blends[0]))
-            .add(africanColor.clone().multiplyScalar(blends[1]))
-            .add(asianColor.clone().multiplyScalar(blends[2]))
+        // caucasian
+        helper.copy(caucasianColor).multiplyScalar(blends[0])
+        color.add(helper)
+
+        // african
+        helper.copy(africanColor).multiplyScalar(blends[1])
+        color.add(helper)
+
+        // asian
+        helper.copy(asianColor).multiplyScalar(blends[2])
+        color.add(helper)
+
         // clamp to [0,1]
-        return color.fromArray(color.toArray().map(v => _.clamp(v, 0, 1)))
+        color.r = _.clamp(color.r, 0, 1)
+        color.g = _.clamp(color.g, 0, 1)
+        color.b = _.clamp(color.b, 0, 1)
+
+        // Return a new color or clone if needed by consumer?
+        // valueOf usually implies returning a primitive or a value that might be used immediately.
+        // The original code returned a new THREE.Color object.
+        // To be safe and compatible, we should return a new object or clone,
+        // BUT if this is called frequently, we might want to return the same object if the consumer supports it.
+        // Given 'valueOf' semantics, it's safer to return a new object to avoid side effects if the consumer modifies it.
+        // However, the optimization goal is to reduce GC.
+        // Let's return a clone for correctness as this likely isn't the tightest loop (skin color update vs vertex update),
+        // but we saved 3-4 intermediate Color objects + array maps.
+
+        return color.clone()
     }
 }
 
