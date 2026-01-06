@@ -12,7 +12,7 @@
  */
 
 import _ from 'lodash'
-import d3Random from 'd3-random'
+import * as d3Random from 'd3-random'
 
 import {
     targetMetaData
@@ -518,7 +518,7 @@ export class Modifiers {
 
 
         // data
-        this.modelingModifiers = Array.concat([], measurementModifiers, modelingModifiers)
+        this.modelingModifiers = [].concat(measurementModifiers, modelingModifiers)
 
         // metadata
         this.modifier_varMapping = {} // Maps macro variable to the modifier group that modifies it
