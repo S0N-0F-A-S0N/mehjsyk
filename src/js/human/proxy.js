@@ -130,34 +130,41 @@ export class Proxy extends THREE.Object3D {
         // TODO faster to do this in the gpu
         // equation = vertice = w0 * v0 + w1 * v1 + w2*v2 + offset, where w0 = weights[i][0], v0 = ref_verts_i[0]
         if (!this.visible || !this.mesh) return null
-        const o = this.metadata.offsets
-        const w = this.metadata.weights
-        const v = this.metadata.ref_vIdxs
-            .map(row =>
-                row.map(vIndx => this.human.mesh.geometry.vertices[vIndx])
-            )
 
-        // convert this.matrix to Matrix3
+        // BOLT: Optimization - Reuse temporary matrix
+        if (!this._tempMatrix) this._tempMatrix = new THREE.Matrix3()
+        const matrix = this._tempMatrix
+
         const mw = this.matrix.elements
-        const matrix = new THREE.Matrix3()
         matrix.set(mw[0], mw[1], mw[2], mw[4], mw[5], mw[6], mw[8], mw[9], mw[10]).transpose()
         const m = matrix.elements
 
-        for (let i = 0; i < this.mesh.geometry.vertices.length; i++) {
+        const o = this.metadata.offsets
+        const w = this.metadata.weights
+        const refVIdxs = this.metadata.ref_vIdxs
+        const humanVertices = this.human.mesh.geometry.vertices
+        const meshVertices = this.mesh.geometry.vertices
+
+        // BOLT: Optimization - Access vertices directly to avoid mapping creation
+        for (let i = 0; i < meshVertices.length; i++) {
             // xyz offsets calculated as dot(matrix, offsets)
-            const vertice = new THREE.Vector3(
+            const vertice = meshVertices[i]
+
+            vertice.set(
                 o[i][0] * m[0] + o[i][1] * m[1] + o[i][2] * m[2],
                 o[i][0] * m[3] + o[i][1] * m[4] + o[i][2] * m[5],
                 o[i][0] * m[6] + o[i][1] * m[7] + o[i][2] * m[8]
             )
 
             // Three weights to three vectors
+            const vIdxs = refVIdxs[i]
             for (let j = 0; j < 3; j++) {
-                vertice.x += w[i][j] * v[i][j].x
-                vertice.y += w[i][j] * v[i][j].y
-                vertice.z += w[i][j] * v[i][j].z
+                // BOLT: Direct access + in-place addition
+                const refV = humanVertices[vIdxs[j]]
+                vertice.x += w[i][j] * refV.x
+                vertice.y += w[i][j] * refV.y
+                vertice.z += w[i][j] * refV.z
             }
-            this.mesh.geometry.vertices[i] = vertice
         }
         this.mesh.geometry.scale(...this.extraGeometryScaling)
         this.mesh.geometry.verticesNeedUpdate = true
