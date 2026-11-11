@@ -314,11 +314,14 @@ export class Targets extends TargetMetaData {
         }
 
         // update the vertices
-        const vertices = this.referenceVertices.map(v => v.clone())
+        const vertices = this.human.geometry.vertices
+        for (let i = 0; i < vertices.length; i += 1) {
+            vertices[i].copy(this.referenceVertices[i])
+        }
         for (let i = 0; i < vertices.length; i += 1) {
             vertices[i].add({ x: dVert[i * 3] * 1e-3, y: dVert[i * 3 + 1] * 1e-3, z: dVert[i * 3 + 2] * 1e-3 })
         }
-        this.human.geometry.vertices = vertices
+        // this.human.geometry.vertices = vertices
 
         // this.human.mesh.geometry.verticesNeedUpdate = true;
         this.human.mesh.geometry.elementsNeedUpdate = true
