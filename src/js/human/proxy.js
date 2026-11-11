@@ -145,7 +145,8 @@ export class Proxy extends THREE.Object3D {
 
         for (let i = 0; i < this.mesh.geometry.vertices.length; i++) {
             // xyz offsets calculated as dot(matrix, offsets)
-            const vertice = new THREE.Vector3(
+            const vertice = this.mesh.geometry.vertices[i]
+            vertice.set(
                 o[i][0] * m[0] + o[i][1] * m[1] + o[i][2] * m[2],
                 o[i][0] * m[3] + o[i][1] * m[4] + o[i][2] * m[5],
                 o[i][0] * m[6] + o[i][1] * m[7] + o[i][2] * m[8]
@@ -157,7 +158,7 @@ export class Proxy extends THREE.Object3D {
                 vertice.y += w[i][j] * v[i][j].y
                 vertice.z += w[i][j] * v[i][j].z
             }
-            this.mesh.geometry.vertices[i] = vertice
+            // this.mesh.geometry.vertices[i] = vertice
         }
         this.mesh.geometry.scale(...this.extraGeometryScaling)
         this.mesh.geometry.verticesNeedUpdate = true
